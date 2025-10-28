@@ -7,5 +7,7 @@
   },
   "author": "HTMonkeyG",
   "license": "GPL-3.0-or-later",
-  "description": "Command Block Group formats for MCBE and HLCL."
+  "description": "Command Block Group formats for MCBE and HLCL.",
+  "devDependencies": {},
+  "types": "./main.d.ts"
 }
