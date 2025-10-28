@@ -8,8 +8,5 @@
     "hlcl-linker",
     "hlcl-wrapper",
     "hlcl-preprocessor"
-  ],
-  "dependencies": {
-    "parsenbt-js": "^3.1.2"
-  }
+  ]
 }
