@@ -1,0 +1,15 @@
+{
+  "name": "hlcl-packages",
+  "private": true,
+  "workspaces": [
+    "hlcl-frontend",
+    "hlcl-backend",
+    "hlcl-cbg",
+    "hlcl-linker",
+    "hlcl-wrapper",
+    "hlcl-preprocessor"
+  ],
+  "dependencies": {
+    "parsenbt-js": "^3.1.2"
+  }
+}
