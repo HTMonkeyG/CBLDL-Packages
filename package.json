@@ -7,6 +7,7 @@
     "hlcl-cbg",
     "hlcl-linker",
     "hlcl-wrapper",
-    "hlcl-preprocessor"
+    "hlcl-preprocessor",
+    "hlcl-mediate"
   ]
 }
