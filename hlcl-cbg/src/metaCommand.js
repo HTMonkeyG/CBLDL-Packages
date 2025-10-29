@@ -5,24 +5,30 @@ class CBGMetaCommand {
 }
 
 class CBGMetaCommandVanilla extends CBGMetaCommand {
+  static Type = "vanilla";
+
   constructor(command) {
-    super("vanilla");
+    super(CBGMetaCommandVanilla.Type);
 
     this.command = command;
   }
 }
 
 class CBGMetaCommandTagged extends CBGMetaCommand {
+  static Type = "tagged";
+
   constructor(command) {
-    super("tagged");
+    super(CBGMetaCommandTagged.Type);
 
     this.command = command;
   }
 }
 
 class CBGMetaCommandCoroutine extends CBGMetaCommand {
+  static Type = "coroutine";
+
   constructor(module) {
-    super("coroutine");
+    super(CBGMetaCommandCoroutine.Type);
 
     this.moduleName = module;
   }
