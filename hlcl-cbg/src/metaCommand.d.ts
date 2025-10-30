@@ -8,7 +8,7 @@ export declare class CBGMetaCommand {
 }
 
 export declare class CBGMetaCommandVanilla extends CBGMetaCommand {
-  readonly static Type: "vanilla";
+  static readonly Type: "vanilla";
 
   constructor(command: string);
 
@@ -16,7 +16,7 @@ export declare class CBGMetaCommandVanilla extends CBGMetaCommand {
 }
 
 export declare class CBGMetaCommandTagged extends CBGMetaCommand {
-  readonly static Type: "tagged";
+  static readonly Type: "tagged";
 
   constructor(command: object[]);
 
@@ -24,7 +24,7 @@ export declare class CBGMetaCommandTagged extends CBGMetaCommand {
 }
 
 export declare class CBGMetaCommandCoroutine extends CBGMetaCommand {
-  readonly static Type: "coroutine";
+  static readonly Type: "coroutine";
 
   constructor(module: string);
 
