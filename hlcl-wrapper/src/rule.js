@@ -4,6 +4,12 @@ const { WrapperCursor } = require("./cursor.js")
   , { blockFromId } = require("./block.js");
 
 class WrappingCommand {
+  static Type = "";
+
+  static deserialize(obj) {
+
+  }
+
   constructor(type) {
     this.type = type;
   }
@@ -14,13 +20,13 @@ class WrappingCommand {
 }
 
 class WrappingCommandMove extends WrappingCommand {
-  static Type = "try";
+  static Type = "move";
 
   static deserialize(obj) {
     var result = new WrappingCommandMove();
 
     result.mode = obj.mode || "absolute";
-    result.p = Vec3.from(obj.vector);
+    result.p = Vec3.from(obj.pos);
 
     return result;
   }
@@ -98,7 +104,12 @@ class WrappingCommandFill extends WrappingCommand {
 
 class WrappingRuleCommandList extends Array {
   static deserialize(obj, avaliableCommands) {
-    var result = new WrappingRuleCommandList;
+    if (!obj)
+      return new WrappingRuleCommandList();
+
+    var result = new WrappingRuleCommandList();
+
+    avaliableCommands || (avaliableCommands = DefaultCommandList);
 
     for (var e of obj) {
       if (avaliableCommands[e.type])
@@ -114,6 +125,13 @@ class WrappingRuleCommandList extends Array {
 class WrappingRule {
   static deserialize(obj, avaliableCommands) {
     var result = new WrappingRule();
+
+    for (var s of ["begin", "module", "chain", "block"])
+      result[s] = WrappingRuleCommandList.deserialize(obj[s], avaliableCommands);
+
+    result.maxTryCount = obj.max_try_count || 100;
+
+    return result;
   }
 
   constructor() {
@@ -126,7 +144,9 @@ class WrappingRule {
   }
 
   createExecutor() {
-    return new WrappingRuleExecutor();
+    var result = new WrappingRuleExecutor();
+    result.rule = this;
+    return result;
   }
 }
 
@@ -137,12 +157,22 @@ class WrappingRuleExecutor {
     this.stage = null;
     this.list = null;
     this.ip = 0;
+    this.done = false;
 
     this.stack = [];
     this.variables = {};
 
     this.cursor = new WrapperCursor();
     this.blockVolume = new WrapperBlockVolume();
+  }
+
+  reset() {
+    this.list = this.rule.begin;
+    this.ip = 0;
+    this.cursor = new WrapperCursor();
+    this.blockVolume = new WrapperBlockVolume();
+    this.stack = [];
+    this.done = false;
   }
 
   pushFrame(list) {
@@ -171,7 +201,12 @@ class WrappingRuleExecutor {
   }
 
   step() {
-
+    if (!this.list)
+      return;
+    this.list[this.ip].execute(this);
+    this.ip++;
+    if (this.ip > this.list.length)
+      this.popFrame();
   }
 
   nextStage() {
@@ -204,6 +239,12 @@ class WrappingRuleExecutor {
   }
 }
 
+const DefaultCommandList = Object.freeze({
+  [WrappingCommandFill.Type]: WrappingCommandFill,
+  [WrappingCommandMove.Type]: WrappingCommandMove,
+  [WrappingCommandTry.Type]: WrappingCommandTry
+});
+
 module.exports = {
   WrappingCommand,
   WrappingCommandFill,
@@ -212,5 +253,6 @@ module.exports = {
   WrappingCommandTry,
   WrappingRuleCommandList,
   WrappingRule,
-  WrappingRuleExecutor
+  WrappingRuleExecutor,
+  DefaultCommandList
 };

@@ -1,6 +1,16 @@
-const { WrapperBlockVolume } = require("./src/structure.js")
-  , { Vec3 } = require("./src/vec3.js")
-  , { WrapperCursor } = require("./src/cursor.js");
+const { WrapperBlockVolume } = require("./src/structure.js");
+const { Vec3 } = require("./src/vec3.js");
+const { WrapperCursor } = require("./src/cursor.js");
+const {
+  WrappingRule,
+  WrappingCommand,
+  WrappingCommandFill,
+  WrappingCommandMove,
+  WrappingCommandTry,
+  WrappingRuleCommandList,
+  WrappingRuleExecutor,
+  DefaultCommandList
+} = require("./src/rule.js");
 
 class CLWrapper {
   constructor(cbg) {
@@ -65,5 +75,13 @@ class CLWrapper {
 var a = new CLWrapper()
 
 module.exports = {
-  CLWrapper
+  CLWrapper,
+  WrappingCommand,
+  WrappingCommandFill,
+  WrappingCommandMove,
+  WrappingCommandTry,
+  WrappingRuleCommandList,
+  WrappingRule,
+  WrappingRuleExecutor,
+  DefaultCommandList
 };

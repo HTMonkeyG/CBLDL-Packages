@@ -46,9 +46,9 @@ class WrapperBlockVolume {
       Math.min(pos1.z, pos2.z)
     );
     max = new Vec3(
-      Math.min(pos1.x, pos2.x),
-      Math.min(pos1.y, pos2.y),
-      Math.min(pos1.z, pos2.z)
+      Math.max(pos1.x, pos2.x),
+      Math.max(pos1.y, pos2.y),
+      Math.max(pos1.z, pos2.z)
     );
 
     for (var xC = min.x; xC <= max.x; xC++)
