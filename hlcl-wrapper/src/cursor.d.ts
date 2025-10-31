@@ -46,10 +46,11 @@ export declare class WrapperCursor {
   pos: Vec3;
   facing: number;
 
-  get(related: { x: number, y: number, z: number } | Vec3): Vec3;
+  convertFacing(facing: number): number;
   getFacing(facingRelated: { x: number, y: number, z: number } | Vec3): Vec3;
-
   setFacing(facing: number): WrapperCursor;
+
+  get(related: { x: number, y: number, z: number } | Vec3): Vec3;
   moveTo(pos: { x: number, y: number, z: number } | Vec3): WrapperCursor;
   move(related: { x: number, y: number, z: number } | Vec3): WrapperCursor;
   moveFacing(facingRelated: { x: number, y: number, z: number } | Vec3): WrapperCursor;

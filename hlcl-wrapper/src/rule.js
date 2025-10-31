@@ -43,11 +43,16 @@ class WrappingCommandMove extends WrappingCommand {
       executor.cursor.move(this.p);
     else
       executor.cursor.moveTo(this.p);
+    return true;
   }
 }
 
 class WrappingCommandTry extends WrappingCommand {
   static Type = "try";
+
+  static deserialize(obj) {
+    return new WrappingCommandTry();
+  }
 
   constructor() {
     super(WrappingCommandTry.Type);
@@ -55,8 +60,9 @@ class WrappingCommandTry extends WrappingCommand {
 
   execute(executor) {
     if (!executor.blockVolume.isAir(executor.cursor))
-      return;
+      return false;
     executor.nextStage();
+    return true;
   }
 }
 
@@ -72,6 +78,28 @@ class WrappingCommandIf extends WrappingCommand {
 
     this.trueList = null;
     this.falseList = null;
+  }
+}
+
+class WrappingCommandLoop extends WrappingCommand {
+  static Type = "loop";
+
+  static deserialize(obj) {
+    var result = new WrappingCommandLoop();
+
+    result.list = WrappingRuleCommandList.deserialize(obj.list);
+
+    return result;
+  }
+
+  constructor() {
+    super(WrappingCommandLoop.Type);
+
+    this.list = null;
+  }
+
+  execute(executor) {
+
   }
 }
 
@@ -99,6 +127,7 @@ class WrappingCommandFill extends WrappingCommand {
 
   execute(executor) {
     executor.blockVolume.fill(this.p1, this.p2, blockFromId(this.block));
+    return true;
   }
 }
 
@@ -119,6 +148,27 @@ class WrappingRuleCommandList extends Array {
     }
 
     return result;
+  }
+
+  [Symbol.iterator]() {
+    var list = this
+      , ip = 0;
+
+    return {
+      next: function () {
+        var value = list[ip]
+          , done = false;
+
+        ip++;
+        if (ip >= list.length)
+          done = true;
+
+        return {
+          value,
+          done
+        }
+      }
+    }
   }
 }
 
@@ -143,15 +193,15 @@ class WrappingRule {
     this.maxTryCount = 100;
   }
 
-  createExecutor() {
-    var result = new WrappingRuleExecutor();
+  createExecutor(callback) {
+    var result = new WrappingRuleExecutor(callback);
     result.rule = this;
     return result;
   }
 }
 
 class WrappingRuleExecutor {
-  constructor() {
+  constructor(placeCallback) {
     this.rule = null;
 
     this.stage = null;
@@ -161,13 +211,16 @@ class WrappingRuleExecutor {
 
     this.stack = [];
     this.variables = {};
+    this.variableStack = [];
 
     this.cursor = new WrapperCursor();
     this.blockVolume = new WrapperBlockVolume();
+
+    this.placeCallback = placeCallback || null;
   }
 
   reset() {
-    this.list = this.rule.begin;
+    this.list = this.stage = this.rule.begin;
     this.ip = 0;
     this.cursor = new WrapperCursor();
     this.blockVolume = new WrapperBlockVolume();
@@ -175,14 +228,26 @@ class WrappingRuleExecutor {
     this.done = false;
   }
 
+  getFrame() {
+    return this.stack.length
+  }
+
+  setFrame(i) {
+    if (i < 0)
+      i = 0;
+    this.stack.splice(i);
+  }
+
   pushFrame(list) {
     this.stack.push({
       ip: this.ip,
-      list: this.list
+      list: this.list,
+      variableStack: this.variableStack
     });
 
     this.ip = 0;
     this.list = list;
+    this.variableStack = [];
 
     return this.stack.length;
   }
@@ -190,8 +255,12 @@ class WrappingRuleExecutor {
   popFrame() {
     var frame = this.stack.pop();
 
+    if (!frame)
+      return 0;
+
     this.ip = frame.ip;
     this.list = frame.list;
+    this.variableStack = frame.variableStack;
 
     return this.stack.length;
   }
@@ -200,13 +269,20 @@ class WrappingRuleExecutor {
 
   }
 
-  step() {
-    if (!this.list)
-      return;
-    this.list[this.ip].execute(this);
-    this.ip++;
-    if (this.ip > this.list.length)
-      this.popFrame();
+  getStage() {
+    if (!this.stage)
+      return null;
+
+    if (this.stage == this.rule.begin)
+      return "begin";
+    else if (this.stage == this.rule.module)
+      return "module";
+    else if (this.stage == this.rule.chain)
+      return "chain";
+    else if (this.stage == this.rule.block)
+      return "block";
+    else
+      return null;
   }
 
   nextStage() {
@@ -214,16 +290,37 @@ class WrappingRuleExecutor {
       this.stage = this.rule.begin;
 
     if (this.stage == this.rule.begin)
-      this.stage = this.rule.module;
-    else if (this.stage == this.rule.module)
-      this.stage = this.rule.module;
+      // We ignore the `try` commands when the executor is executing the beginning
+      // command list.
+      return;
+
+    if (this.stage == this.rule.module)
+      this.stage = this.rule.chain;
     else if (this.stage == this.rule.chain)
       this.stage = this.rule.block;
 
     this.pushFrame(this.stage);
 
     if (this.stage == this.rule.block)
-      console.log("place.");
+      this.tryPlaceAtCursor();
+  }
+
+  /**
+   * Switch to the `module` stage from the `begin` stage.
+   */
+  endBegin() {
+    if (this.stage == this.rule.begin)
+      this.stage = this.rule.module;
+    this.list = this.stage;
+    this.ip = 0;
+    // Reset the stack.
+    this.setFrame(0);
+  }
+
+  tryPlaceAtCursor() {
+    if (this.placeCallback)
+      return this.placeCallback(this.cursor, this);
+    return true;
   }
 
   nextModule() {
@@ -237,18 +334,51 @@ class WrappingRuleExecutor {
   nextBlock() {
 
   }
+
+  /**
+   * Step once.
+   * @returns {boolean} True when reached the end of the command list.
+   */
+  step() {
+    if (!this.list || !this.list.length) {
+      this.popFrame();
+      return true;
+    }
+
+    if (this.ip > this.list.length) {
+      // Pop and restore stack frame.
+      this.popFrame();
+    }
+
+    this.list[this.ip].execute(this);
+    this.ip++;
+
+    if (this.ip >= this.list.length)
+      return true;
+
+    return false;
+  }
+
+  /**
+   * Execute until the end of current command list.
+   */
+  runList() {
+    while (!this.step());
+  }
 }
 
 const DefaultCommandList = Object.freeze({
   [WrappingCommandFill.Type]: WrappingCommandFill,
   [WrappingCommandMove.Type]: WrappingCommandMove,
-  [WrappingCommandTry.Type]: WrappingCommandTry
+  [WrappingCommandTry.Type]: WrappingCommandTry,
+  [WrappingCommandLoop.Type]: WrappingCommandLoop
 });
 
 module.exports = {
   WrappingCommand,
   WrappingCommandFill,
   WrappingCommandIf,
+  WrappingCommandLoop,
   WrappingCommandMove,
   WrappingCommandTry,
   WrappingRuleCommandList,

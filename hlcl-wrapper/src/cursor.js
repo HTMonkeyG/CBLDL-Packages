@@ -57,6 +57,15 @@ class WrapperCursor {
     return this.pos.add(Vec3.from(related));
   }
 
+  convertFacing(facing) {
+    if (!(facing & WrapperCursor.FacingFlags.VMask))
+      return ((this.facing & WrapperCursor.FacingFlags.HMask) >> 2) + 2
+    else if ((this.facing & WrapperCursor.FacingFlags.VMask) == WrapperCursor.FacingFlags.YN)
+      return WrapperCursor.BlockFacing.YN;
+    else if ((this.facing & WrapperCursor.FacingFlags.VMask) == WrapperCursor.FacingFlags.YP)
+      return WrapperCursor.BlockFacing.YP;
+  }
+
   getFacing(facingRelated) {
     var result = Vec3.from(this.pos)
       , related = Vec3.from(facingRelated);

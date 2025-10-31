@@ -6,6 +6,7 @@ export declare class WrappingCommand {
   static deserialize(obj: object): WrappingCommand;
   constructor();
   readonly type: string;
+  execute(executor: WrappingRuleExecutor): boolean;
 }
 
 export declare class WrappingCommandMove extends WrappingCommand {
@@ -17,6 +18,7 @@ export declare class WrappingCommandMove extends WrappingCommand {
   readonly type: "move";
   mode: "absolute" | "related";
   p: { x: number, y: number, z: number };
+  execute(executor: WrappingRuleExecutor): boolean;
 }
 
 export declare class WrappingCommandTry extends WrappingCommand {
@@ -24,6 +26,7 @@ export declare class WrappingCommandTry extends WrappingCommand {
   static deserialize(obj: object): WrappingCommandTry;
   constructor();
   readonly type: "try";
+  execute(executor: WrappingRuleExecutor): boolean;
 }
 
 export declare class WrappingCommandFill extends WrappingCommand {
@@ -36,6 +39,7 @@ export declare class WrappingCommandFill extends WrappingCommand {
   p1: { x: number, y: number, z: number };
   p2: { x: number, y: number, z: number };
   block: string;
+  execute(executor: WrappingRuleExecutor): boolean;
 }
 
 export declare class WrappingRuleCommandList extends Array {
@@ -53,13 +57,14 @@ export declare class WrappingRule {
   block: WrappingRuleCommandList;
   maxTryCount: number;
 
-  createExecutor(): WrappingRuleExecutor;
+  createExecutor(callback: (cursor: WrapperCursor, executor: WrappingRuleExecutor) => boolean): WrappingRuleExecutor;
 }
 
 export declare class WrappingRuleExecutor {
-  constructor();
+  constructor(placeCallback: (cursor: WrapperCursor, executor: WrappingRuleExecutor) => boolean);
 
-  readonly stack: { ip: number, list: WrappingRuleCommandList }[];
+  readonly variableStack: object[];
+  readonly stack: { ip: number, list: WrappingRuleCommandList, variableStack: object[] }[];
   readonly stage: WrappingRuleCommandList;
   readonly list: WrappingRuleCommandList;
   readonly ip: number;
@@ -68,8 +73,17 @@ export declare class WrappingRuleExecutor {
   variables: object;
   blockVolume: WrapperBlockVolume;
 
+  getStage(): null | "begin" | "module" | "chain" | "block";
+  nextStage(): void;
+  endBegin(): void;
+
+  getFrame(): number;
+  setFrame(i: number): void;
   pushFrame(list: WrappingRuleCommandList): number;
   popFrame(): number;
+
+  step(): boolean;
+  runList(): void;
 }
 
 export const DefaultCommandList: object;
